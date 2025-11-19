@@ -1,0 +1,13 @@
+# --- Build folders ---
+build/
+build*/  
+out/
+bin/
+obj/
+
+
+# --- VSCode ---
+.vscode/
+*.code-workspace
+
+
