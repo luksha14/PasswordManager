@@ -333,7 +333,7 @@ void AppController::handleGeneratePassword() {
     if (!input.empty() && (input == "n" || input == "N")) options.useDigits = false;
 
     try {
-        std::string generatedPass = PasswordGenerator::generate(options);
+        generatedPass = PasswordGenerator::generate(options);
 
         std::cout << "\nGenerated Password (" << generatedPass.length() << " chars):\n";
         std::cout << "------------------------------------------\n";
