@@ -33,6 +33,60 @@ void AppController::showWelcomeScreen() {
     std::cout << RESET;
 }
 
+#ifdef _WIN32
+    // Windows: Use conio.h and _getch()
+    #include <conio.h> 
+    #define GETCH _getch
+#else
+    // Linux/macOS (UNIX-like): Use termios.h and unistd.h
+    #include <termios.h>
+    #include <unistd.h>
+    
+    // Custom function to mimic _getch() behavior on UNIX-like systems
+    int getch_unix() {
+        int ch;
+        struct termios oldt, newt;
+        
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+        
+        ch = getchar();
+        
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        return ch;
+    }
+    #define GETCH getch_unix
+#endif
+
+// Helper function to read a masked password
+std::string getMaskedPassword(const std::string& prompt) {
+    std::string password;
+    char character;
+    std::cout << prompt;
+
+    while (true) {
+        character = GETCH();
+
+        if (character == 13) { // ENTER key
+            break;
+        }
+
+        if (character == 8) { // BACKSPACE key
+            if (!password.empty()) {
+                password.pop_back();
+                std::cout << "\b \b"; 
+            }
+        } else if (character >= 32) { 
+            password.push_back(character);
+            std::cout << "*";
+        }
+    }
+    std::cout << std::endl;
+    return password;
+}
+
 void AppController::handleRegistration() {
     std::string pass1, pass2;
 
@@ -56,7 +110,7 @@ void AppController::handleRegistration() {
             continue;
         }
 
-        // 1. POKUŠAJ REGISTRACIJE I DERIVACIJE KLJUČA
+        // 1. Pokusaj registracije kljuca
         try {
             auth.createMasterPassword(pass1); 
             
@@ -82,10 +136,9 @@ bool AppController::handleLogin() {
     std::cout << "\nEnter master password to access:\n";
 
     while (true) {
-        std::cout << "Password: ";
-        std::getline(std::cin, pass);
+        
+        pass = getMaskedPassword("Password: "); 
 
-        // Attempt Verification
         if (auth.verifyMasterPassword(pass)) {
             
             // Derive and store the encryption key
@@ -97,8 +150,8 @@ bool AppController::handleLogin() {
             }
             
             std::cout << "Login successful! Welcome back.\n\n";
-            this->encryptionKey = encryptionKey;
-            this->lastActivityTime = std::time(nullptr); // 🔑 NOVO: Postavi početno vrijeme aktivnosti
+            this->encryptionKey = encryptionKey; 
+            this->lastActivityTime = std::time(nullptr); 
             ActivityLogger::log("SUCCESS", "User successfully logged in.");
             return true;
         } else {
